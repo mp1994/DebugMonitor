@@ -41,7 +41,7 @@ int main(int argc, char *argv[]) {
 	} else {
 	
 		// Default options
-		baudrate = 57600;
+		baudrate = 115200;
 		strcpy(port, "/dev/ttyUSB0");
 		
 	}
@@ -116,20 +116,22 @@ int8_t initPort(int *fd, int BR) {
      tcgetattr(*fd,&options);
 
      switch(BR) {
-     	case 9600: cfsetispeed(&options, B9600);
-     	           cfsetospeed(&options, B9600);
-          	break;
-          case 19200: cfsetispeed(&options, B19200);
-     	            cfsetospeed(&options, B19200);
-          	break;
-          case 38400: cfsetispeed(&options, B38400);
-          	       cfsetospeed(&options, B38400);
-      	     break;
-          case 57600: cfsetspeed(&options, B57600);
-               break;
+     	case 9600:   cfsetispeed(&options, B9600);
+     	             cfsetospeed(&options, B9600);
+          		   break;
+          case 19200:  cfsetispeed(&options, B19200);
+     	             cfsetospeed(&options, B19200);
+          		   break;
+          case 38400:  cfsetispeed(&options, B38400);
+          	        cfsetospeed(&options, B38400);
+      	     	   break;
+          case 57600:  cfsetspeed(&options, B57600);
+               	   break;
+          case 115200: cfsetspeed(&options, B115200);
+          		   break;
 
-          default: cfsetispeed(&options, B57600);
-                   cfsetospeed(&options, B57600);
+          default: cfsetispeed(&options, B115200);
+                   cfsetospeed(&options, B115200);
                    break;
 	}
 
