@@ -15,7 +15,7 @@
 #include <sys/types.h>
 #include <string.h>
 
-#define BUFFER_SIZE 4096
+#define BUFFER_SIZE 1024
 
 char buffer[BUFFER_SIZE];
 char readFlag = 1;
@@ -83,7 +83,7 @@ int main(int argc, char *argv[]) {
 	while( readFlag ) {
 	
 		n = read(fd, buffer, sizeof(buffer));
-		usleep(50);
+		//usleep(50);
 		
 		if ( n > 1 ) {
 			fprintf(foutput, "%s", buffer);
@@ -115,6 +115,7 @@ int8_t initPort(int *fd, int BR) {
 	struct termios options;
      tcgetattr(*fd,&options);
 
+	// Set Baud Rate of communication
      switch(BR) {
      	case 9600:   cfsetispeed(&options, B9600);
      	             cfsetospeed(&options, B9600);
@@ -135,11 +136,25 @@ int8_t initPort(int *fd, int BR) {
                    break;
 	}
 
-     options.c_cflag |= (CLOCAL | CREAD);
+	// Set some UART options
+	// Enable receiver (CREAD), ignore modem control lines (CLOCAL)
+     options.c_cflag |= (CLOCAL | CREAD); 
+     // No parity
      options.c_cflag &= ~PARENB;
+     // Only 1 stop bit (8n1)
      options.c_cflag &= ~CSTOPB;
+     // Set 8-bit words
      options.c_cflag &= ~CSIZE;
      options.c_cflag |= CS8;
+     
+     // Enable POLLING-READ
+     options.c_cc[VTIME] = 0;
+     options.c_cc[VMIN]  = 0;
+     
+     // Flush unread, unwritten data
+     tcflush(fd, TCIOFLUSH);
+     
+     // Apply settings
      tcsetattr(*fd,TCSANOW,&options);
      
      return 1;
