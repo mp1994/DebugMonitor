@@ -1,5 +1,5 @@
-/***   Debug Serial Monitor   ***/
-/********************************/
+/*********    Debug Serial Monitor    *********/
+/**********************************************/
 
 // ./monitor <PORT> <BAUDRATE> <FILENAME>
 // Default: /dev/ttyUSB0 57600 monitorFile.csv
@@ -90,10 +90,6 @@ int main(int argc, char *argv[]) {
 			printf("%s", buffer);	
 		}
 		
-		// Log data to file 
-		//fprintf(foutput, "%d : %s\n", i, buffer);
-		//i++;
-		
 		memset(buffer, 0, BUFFER_SIZE); // Flush buffer
 		
 	}	
@@ -136,7 +132,7 @@ int8_t initPort(int *fd, int BR) {
                    break;
 	}
 
-	// Set some UART options
+	/* Set some UART options */
 	// Enable receiver (CREAD), ignore modem control lines (CLOCAL)
      options.c_cflag |= (CLOCAL | CREAD); 
      // No parity
