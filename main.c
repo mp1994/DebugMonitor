@@ -19,10 +19,10 @@
 
 char buffer[BUFFER_SIZE];
 char readFlag = 1;
-char filename[100] = "monitorFile.csv";
+char filename[100] = "";
 	
 int8_t initPort(int *fd, int BR);
-void INThandler(int);
+void   INThandler(int);
 
 FILE *foutput;
 
@@ -30,27 +30,35 @@ int main(int argc, char *argv[]) {
 
 	int baudrate;
 	char port[25];
-
-	if ( argc > 1 ) {
+	time_t tempo = time(NULL);
 	
+	/** PARSE USER INPUT **/
+	/* argv[0] = ./monitor */
+	if ( argc > 1 ) {
+		
 		strcpy(port, argv[1]);
 		baudrate = atoi(argv[2]);
 		strcpy(filename, argv[3]);
+
+	} 
+	else {
 	
-	
-	} else {
-	
-		// Default options
+		/* Default options */
 		baudrate = 115200;
 		strcpy(port, "/dev/ttyUSB0");
+		if ( strlen(filename) == 0 ) {
+			struct tm tm = *localtime(&tempo);
+			sprintf(filename, "LOGFILE_%d%d%d_%d%d%d.csv", tm.tm_year, tm.tm_mon+1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
+		}
 		
 	}
 	
-	// OPEN SERIAL
+	/** OPEN SERIAL **/
 	int fd = open(port, O_RDWR | O_NOCTTY | O_NDELAY);
 	usleep(500);
-	if ( !fd ) {
-		printf("Unable to open connection.\n");
+	if ( fd < 0 ) {
+		printf("[!] Unable to open connection with %s.\n", port);
+		printf("Exiting...\n");
 		return fd;
 	}
 	if ( initPort(&fd, baudrate) )
@@ -59,10 +67,11 @@ int main(int argc, char *argv[]) {
 		printf("Unable to connect.\n\n");
 		return -1;
 	}
-		
+	
+	/* Variable to Store the Number of Bytes Read from the Serial */
 	int n = 0; 
 	
-	// Init file 
+	/* Init the Logfile */
 	foutput = fopen(filename, "w+");
 	if ( !foutput ) {
 		printf("Unable to open file.\n");
@@ -70,27 +79,25 @@ int main(int argc, char *argv[]) {
 	}
 	fprintf(foutput, "Log file\n");
 	
-	// Flush the buffer due to the RESET of the AVR when opening the serial communication
+	/* Flush the Buffer */
 	n = read(fd, buffer, sizeof(buffer));
 	memset(buffer, 0, BUFFER_SIZE);
 	usleep(10);
 
-	// Catch CTRL+C and close the connection before quitting
+	/* Catch CTRL+C to Close the Connection Before Quitting */
 	signal(SIGINT, INThandler);
-	
-	int i = 1;
-	
+		
 	while( readFlag ) {
 	
-		n = read(fd, buffer, sizeof(buffer));
-		//usleep(50);
-		
+		/* Get Data */
+		n = read(fd, buffer, sizeof(buffer));	
+		/* Log */	
 		if ( n > 1 ) {
 			fprintf(foutput, "%s", buffer);
 			printf("%s", buffer);	
 		}
-		
-		memset(buffer, 0, BUFFER_SIZE); // Flush buffer
+		/* Flush the Buffer */
+		memset(buffer, 0, BUFFER_SIZE);
 		
 	}	
 	
@@ -148,7 +155,7 @@ int8_t initPort(int *fd, int BR) {
      options.c_cc[VMIN]  = 0;
      
      // Flush unread, unwritten data
-     tcflush(fd, TCIOFLUSH);
+     tcflush(*fd, TCIOFLUSH);
      
      // Apply settings
      tcsetattr(*fd,TCSANOW,&options);
