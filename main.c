@@ -14,10 +14,12 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <string.h>
+#include <assert.h>
 
 #define BUFFER_SIZE 1024
 
-char buffer[BUFFER_SIZE];
+char rx_buffer[BUFFER_SIZE];
+char tx_buffer[BUFFER_SIZE];
 char readFlag = 1;
 char filename[100] = "";
 	
@@ -38,7 +40,8 @@ int main(int argc, char *argv[]) {
 		
 		strcpy(port, argv[1]);
 		baudrate = atoi(argv[2]);
-		strcpy(filename, argv[3]);
+		if( argc == 4 ) strcpy(filename, argv[3]);
+		else strcpy(filename, "/dev/null");
 
 	} 
 	else {
@@ -71,39 +74,40 @@ int main(int argc, char *argv[]) {
 	/* Variable to Store the Number of Bytes Read from the Serial */
 	int n = 0; 
 	
-	/* Init the Logfile */
-	foutput = fopen(filename, "w+");
-	if ( !foutput ) {
-		printf("Unable to open file.\n");
-		return -2;
-	}
-	fprintf(foutput, "Log file\n");
-	
-	/* Flush the Buffer */
-	n = read(fd, buffer, sizeof(buffer));
-	memset(buffer, 0, BUFFER_SIZE);
+	/* Flush the rx_buffer */
+	n = read(fd, rx_buffer, sizeof(rx_buffer));
+	memset(rx_buffer, 0, BUFFER_SIZE);
 	usleep(10);
 
 	/* Catch CTRL+C to Close the Connection Before Quitting */
 	signal(SIGINT, INThandler);
-		
+	
+	printf("Waiting for data...\n");
+	while( read(fd, rx_buffer, sizeof(rx_buffer)) < 8 );
+	printf("%s\n", rx_buffer);
+
+	n = 0;
+	memset(rx_buffer, 0, BUFFER_SIZE);
+
 	while( readFlag ) {
 	
+		scanf("%s", tx_buffer);
+		write(fd, tx_buffer, strlen(tx_buffer));
+		usleep(500000);
+
 		/* Get Data */
-		n = read(fd, buffer, sizeof(buffer));	
+		n = read(fd, rx_buffer, sizeof(rx_buffer));	
 		/* Log */	
-		if ( n > 1 ) {
-			fprintf(foutput, "%s", buffer);
-			printf("%s", buffer);	
+		if ( n >= 1 ) {
+			printf("%s\n", rx_buffer);	
 		}
-		/* Flush the Buffer */
-		memset(buffer, 0, BUFFER_SIZE);
+		/* Flush the rx_buffer */
+		memset(rx_buffer, 0, BUFFER_SIZE);
 		
 	}	
 	
 	printf("\nClosing connection... Goodbye!\n");
 	close(fd);
-	fclose(foutput);
 	
 	return 0;
 
@@ -116,28 +120,10 @@ void INThandler(int sig) {
 int8_t initPort(int *fd, int BR) {
 	
 	struct termios options;
-     tcgetattr(*fd,&options);
+    tcgetattr(*fd, &options);
 
 	// Set Baud Rate of communication
-     switch(BR) {
-     	case 9600:   cfsetispeed(&options, B9600);
-     	             cfsetospeed(&options, B9600);
-          		   break;
-          case 19200:  cfsetispeed(&options, B19200);
-     	             cfsetospeed(&options, B19200);
-          		   break;
-          case 38400:  cfsetispeed(&options, B38400);
-          	        cfsetospeed(&options, B38400);
-      	     	   break;
-          case 57600:  cfsetspeed(&options, B57600);
-               	   break;
-          case 115200: cfsetspeed(&options, B115200);
-          		   break;
-
-          default: cfsetispeed(&options, B115200);
-                   cfsetospeed(&options, B115200);
-                   break;
-	}
+	assert(cfsetspeed(&options, BR) == 0);
 
 	/* Set some UART options */
 	// Enable receiver (CREAD), ignore modem control lines (CLOCAL)
